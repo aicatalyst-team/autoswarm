@@ -7,7 +7,9 @@
 [![uv](https://img.shields.io/badge/uv-package%20manager-purple)](https://docs.astral.sh/uv/)
 [![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)](https://docker.com)
 
-<img src="superagent.gif" alt="AutoSwarm" width="400">
+<p align="center">
+  <img src="superagent.gif" alt="AutoSwarm" width="400">
+</p>
 
 > A self-improving OpenAI-compatible proxy for local LLMs, plus a multi-agent pipeline harness that self-optimizes its own topology.
 
