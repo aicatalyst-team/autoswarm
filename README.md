@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white" alt="Discord" />
   </a>
    <br>
-  <img src="superagent_solo.gif" alt="AutoSwarm" width="300">
+  <img src="superagent_solo.gif" alt="AutoSwarm" width="400">
 </p>
 
 > A self-improving OpenAI-compatible proxy for local LLMs, plus a multi-agent pipeline harness that self-optimizes its own topology.
