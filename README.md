@@ -4,7 +4,6 @@
 [![Stars](https://img.shields.io/github/stars/arteemg/autoswarm?style=social)](https://github.com/arteemg/autoswarm)
 [![Forks](https://img.shields.io/github/forks/arteemg/autoswarm?style=social)](https://github.com/arteemg/autoswarm)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
-[![uv](https://img.shields.io/badge/uv-package%20manager-purple)](https://docs.astral.sh/uv/)
 [![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)](https://docker.com)
 
 <p align="center">
