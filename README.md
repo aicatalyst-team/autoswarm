@@ -9,9 +9,68 @@
 
 ![AutoSwarm](autoswarm.png)
 
-> A multi-agent pipeline harness that self-optimizes its own topology. A meta-agent edits stage prompts, tool assignments, turn budgets, and pipeline structure.
+> A self-improving OpenAI-compatible proxy for local LLMs, plus a multi-agent pipeline harness that self-optimizes its own topology.
 
-## How it works
+AutoSwarm runs in two modes:
+
+- **Online mode** — drop-in proxy in front of LM Studio / Ollama / vLLM. It logs every chat, then a `reflect` pass distills lessons into a skillbook that gets injected into future system prompts. Skills that turn out to be wrong get pruned automatically.
+- **Benchmark mode** — a multi-agent pipeline harness over [Harbor](https://github.com/laude-institute/harbor) tasks. A meta-agent edits stage prompts, tools, turn budgets, and pipeline structure to hill-climb on `passed` tasks.
+
+## Online mode: self-improving local LLM proxy
+
+### Install
+
+```bash
+pip install -e .            # editable install from the repo
+```
+
+Requires Python 3.12+.
+
+### Start the proxy
+
+```bash
+autoswarm doctor            # diagnose local LLM availability
+autoswarm start             # auto-detects upstream + model
+```
+
+`autoswarm start` probes `:1234` (LM Studio), `:11434` (Ollama), and `:8000` (vLLM) and picks the first one that has a model loaded. Override either with `--upstream` / `--model`. The proxy listens on `http://127.0.0.1:8080`.
+
+Point any OpenAI-compatible client (Chatbox, Open WebUI, your own scripts) at `http://127.0.0.1:8080/v1`. Every chat is logged to `conversations/` and runs through the proxy's skill-injection layer.
+
+### Reflect and prune
+
+```bash
+autoswarm reflect           # review unreviewed conversations
+```
+
+For each unreviewed conversation, the same upstream LLM is asked whether there's a concrete lesson worth keeping. Novel lessons land in `skills.yaml`. After the add pass, a second judge call reviews the full skillbook against recent conversations and silently removes anything that's wrong, contradictory, or too vague. Output looks like:
+
+```
+reviewed=12 added=3 skipped=9 pruned=1
+```
+
+For hosted upstreams (OpenAI etc.) pass `--api-key` or set `OPENAI_API_KEY`. Local LLMs need nothing.
+
+### Inspect skills
+
+```bash
+autoswarm skills list       # show learned strategies
+autoswarm skills clear      # wipe the skillbook
+```
+
+### CLI reference
+
+| Command                  | Purpose                                                             |
+| ------------------------ | ------------------------------------------------------------------- |
+| `autoswarm doctor`       | Probe local LLM servers, print copy-paste fixes                     |
+| `autoswarm start`        | Run the OpenAI-compatible proxy on `:8080` with skill injection     |
+| `autoswarm reflect`      | Distill lessons from new conversations + prune bad skills (one LLM call per convo, one per run for pruning) |
+| `autoswarm skills list`  | Show current skills                                                 |
+| `autoswarm skills clear` | Delete `skills.yaml`                                                |
+
+## Benchmark mode
+
+### How it works
 
 - **`pipeline_spec.yaml`** — the topology the meta-agent edits. Defines stages (system prompt, tools, turn budget, output format) and handoffs (token budget, context format) between them. This is the primary edit surface.
 - **`pipeline.py`** — the runner. Reads `pipeline_spec.yaml` and executes the pipeline. Contains a small editable section (tool definitions, compression logic) and a fixed Harbor adapter boundary.
@@ -24,45 +83,7 @@ The metric is total **passed** tasks. The meta-agent hill-climbs on this score b
 
 <img src="sample/sample_results.png" alt="Sample results" width="600">
 
-## Quick start
-
-**Requirements:** Docker, Python 3.12+, [uv](https://docs.astral.sh/uv/), `OPENAI_API_KEY`.
-
-```bash
-# 1. Install uv (if you don't have it)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 2. Install dependencies
-uv sync
-
-# 3. Set credentials
-cat > .env << 'EOF'
-OPENAI_API_KEY=...
-EOF
-
-# 4. Add tasks to tasks/ (see Task format below), or use a registry dataset (see below)
-
-# 5. Run the pipeline harness on local tasks (swap pipeline:AutoAgent for
-#    agent:AutoAgent to run the single-agent baseline for comparison).
-rm -rf jobs && uv run harbor run -p tasks/ -n 89 \
-  --agent-import-path pipeline:AutoAgent \
-  --n-concurrent 12 \
-  -o jobs --job-name latest > run.log 2>&1
-```
-
-**Registry dataset (no local task checkout required):** the harness loads from your repo via `uv`; Docker runs **task** environments only. For example:
-
-```bash
-uv run harbor run \
-  --dataset terminal-bench@2.0 \
-  --agent-import-path pipeline:AutoAgent \
-  --n-concurrent 12 \
-  --n-tasks 89 \
-  --env-file .env \
-  -o jobs --job-name latest > run.log 2>&1
-```
-
-## Running the meta-agent
+### Running the meta-agent
 
 Point your coding agent at the repo and prompt:
 
@@ -72,7 +93,7 @@ Read program_pipeline.md and let's kick off a new experiment!
 
 The meta-agent will read the directive, inspect `pipeline_spec.yaml`, run the benchmark, score each stage with `evaluator.py`, edit the topology, and iterate.
 
-## Project structure
+### Project structure
 
 ```text
 pipeline_spec.yaml             -- pipeline topology (primary edit surface)
@@ -89,7 +110,7 @@ results.tsv                    -- experiment log (gitignored)
 run.log                        -- latest run output (gitignored)
 ```
 
-## pipeline_spec.yaml
+### pipeline_spec.yaml
 
 This is what the meta-agent reads and edits. Stage-level fields:
 
@@ -109,22 +130,7 @@ Handoff fields between stages:
 | `format`             | Format hint for context compression            |
 | `include_raw_output` | If true, passes full output uncompressed       |
 
-## Stage evaluator
-
-After a run, score stage traces:
-
-```bash
-RUN_DIR=$(ls -td jobs/*/ | head -1)
-for task_dir in "${RUN_DIR}"/*/; do
-  traces="$task_dir/logs/stage_traces.json"
-  instr="$(cat tasks/$(basename "$task_dir")/instruction.md 2>/dev/null || echo '')"
-  [ -f "$traces" ] && uv run python evaluator.py "$traces" --instruction "$instr"
-done
-```
-
-Output is one comma-separated `stage_id:score` per topology — for a `recon→solve→check` pipeline that's `recon:0.82,solve:0.65,check:0.88`. Goes into `results.tsv` as `stage_scores`.
-
-## results.tsv schema
+### results.tsv schema
 
 ```text
 commit  avg_score  passed  task_scores  stage_scores  pipeline_topology  cost_usd  status  description
@@ -132,7 +138,7 @@ commit  avg_score  passed  task_scores  stage_scores  pipeline_topology  cost_us
 
 `pipeline_topology` records the stage sequence at time of run — could be `vanilla-agent`, `recon→solve→check`, `plan→execute→verify→execute→verify` (verify-driven retry), or any shape the meta-agent has built — so structural changes are traceable across the experiment log.
 
-## Task format
+### Task format
 
 Tasks follow [Harbor's format](https://harborframework.com/docs/tasks):
 
@@ -146,10 +152,6 @@ tasks/my-task/
   environment/
     Dockerfile        -- task container image for Harbor
 ```
-
-## Built on AutoAgent
-
-AutoSwarm is built on top of [AutoAgent](https://github.com/thirdlayer/autoagent) — the original single-agent self-improvement loop. The core experiment loop, Harbor integration, and `agent.py` harness are inherited directly. AutoSwarm extends the edit surface from a single agent to a multi-agent pipeline topology.
 
 ## License
 

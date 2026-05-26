@@ -9,16 +9,16 @@ invent the agents, name them, and wire them together however the
 failure modes demand.
 
 Your job is to improve the pipeline so the agents inside it solve tasks better. Do not
-change the `model:` field in `pipeline_spec.yaml` from `gpt-5`.
+change the `model:` field in `benchmark/pipeline_spec.yaml` from `gpt-5`.
 
 ## Edit surfaces
 
-**`pipeline_spec.yaml`** Stage fields (`system_prompt`,
+**`benchmark/pipeline_spec.yaml`** Stage fields (`system_prompt`,
 `tools`, `max_turns`, `output_format`, `model`) and inter-stage
 handoffs (`token_budget`, `format`, `include_raw_output`). You can
 add, remove, or reorder stages.
 
-**`pipeline.py` — only above `FIXED ADAPTER BOUNDARY`.**
+**`benchmark/pipeline.py` — only above `FIXED ADAPTER BOUNDARY`.**
 Reach for it when YAML alone can't express the change: new tool
 factories (`make_*_tool`), agent construction (`build_stage_agent`),
 handoff compression (`compress_handoff`), or orchestration in
@@ -31,7 +31,7 @@ turns between stages; do not inflate the global budget.
 
 1. Read `run.log`, `results.tsv`, and the most recent
    `stage_traces.json` under `jobs/`.
-2. Score per-stage outputs with `evaluator.py` (see below).
+2. Score per-stage outputs with `benchmark/evaluator.py` (see below).
 3. Identify the lowest-scoring stage; group failures by root cause.
 4. Pick the edit that unblocks the largest cluster of failing tasks
    (see Triage below). One edit per iteration.
@@ -66,7 +66,7 @@ tools win.
 \`\`\`bash
 uv run harbor run \\
 --dataset terminal-bench@2.0 \\
---agent-import-path pipeline:AutoAgent \\
+--agent-import-path benchmark.pipeline:AutoAgent \\
 --n-concurrent 12 --n-tasks 89 --env-file .env
 \`\`\`
 
@@ -79,7 +79,7 @@ Triage run (use while iterating on a single edit):
 IMPORTANT: ALWAYS KEEP --n-attempts 2
 
 \`\`\`bash
-uv run harbor run --dataset terminal-bench@2.0 --agent-import-path pipeline:AutoAgent --n-concurrent 10 --env-file .env -o jobs --n-attempts 2 --job-name iter0-recipe -i modernize-scientific-stack -i openssl-selfsigned-cert -i prove-plus-comm -i nginx-request-logging -i configure-git-webserver -i cancel-async-tasks -i crack-7z-hash -i extract-elf -i kv-store-grpc -i log-summary-date-ranges
+uv run harbor run --dataset terminal-bench@2.0 --agent-import-path benchmark.pipeline:AutoAgent --n-concurrent 10 --env-file .env -o jobs --n-attempts 2 --job-name iter0-recipe -i modernize-scientific-stack -i openssl-selfsigned-cert -i prove-plus-comm -i nginx-request-logging -i configure-git-webserver -i cancel-async-tasks -i crack-7z-hash -i extract-elf -i kv-store-grpc -i log-summary-date-ranges
 \`\`\`
 
 ### Score stages
@@ -89,7 +89,7 @@ RUN_DIR=$(ls -td jobs/*/ | head -1)
 for task_dir in "${RUN_DIR}"/\*/; do
 traces="$task_dir/logs/stage_traces.json"
   instr="$(cat tasks/$(basename "$task_dir")/instruction.md 2>/dev/null || echo '')"
-[ -f "$traces" ] && uv run python evaluator.py "$traces" --instruction "$instr"
+[ -f "$traces" ] && uv run python -m benchmark.evaluator "$traces" --instruction "$instr"
 done
 \`\`\`
 
