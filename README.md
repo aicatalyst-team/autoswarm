@@ -1,8 +1,8 @@
 # AutoSwarm
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Stars](https://img.shields.io/github/stars/arteemg/autoswarm?style=social)](https://github.com/arteemg/autoswarm)
-[![Forks](https://img.shields.io/github/forks/arteemg/autoswarm?style=social)](https://github.com/arteemg/autoswarm)
+[![Stars](https://img.shields.io/github/stars/arteemg/autoswarm?style=social&cacheSeconds=3600)](https://github.com/arteemg/autoswarm)
+[![Forks](https://img.shields.io/github/forks/arteemg/autoswarm?style=social&cacheSeconds=3600)](https://github.com/arteemg/autoswarm)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)](https://docker.com)
 
