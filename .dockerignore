@@ -1,0 +1,14 @@
+.git
+*.md
+LICENSE
+kubernetes/
+poc-plan.md
+.autopoc/
+benchmark/
+sample/
+*.png
+*.gif
+Dockerfile.base
+__pycache__/
+.env*
+*.pyc

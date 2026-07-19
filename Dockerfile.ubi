@@ -1,0 +1,28 @@
+FROM registry.access.redhat.com/ubi9/python-312
+
+WORKDIR /opt/app-root/src
+
+# Copy dependency definition
+COPY pyproject.toml ./
+
+# Install only the online proxy dependencies (not benchmark extras)
+RUN pip install --no-cache-dir .
+
+# Copy application source
+COPY online/ ./online/
+COPY README.md ./
+
+# Create directories for conversations and skills
+RUN mkdir -p conversations && touch skills.yaml
+
+# OpenShift compatibility
+RUN chgrp -R 0 /opt/app-root && chmod -R g=u /opt/app-root
+
+EXPOSE 8080
+
+USER 1001
+
+# Start the proxy server directly with uvicorn, bypassing CLI auto-detection
+# In production, set UPSTREAM_URL env var to point to your LLM endpoint
+ENV UPSTREAM_URL="http://localhost:11434"
+CMD ["python", "-c", "from online.server import create_app; import uvicorn; app = create_app(upstream='http://localhost:11434'); uvicorn.run(app, host='0.0.0.0', port=8080, log_level='info')"]
