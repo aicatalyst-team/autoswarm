@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy
+  namespace: poc-autoswarm
+  labels:
+    app: proxy
+    autopoc.io/project: autoswarm
+spec:
+  type: ClusterIP
+  selector:
+    app: proxy
+  ports:
+    - port: 8080
+      targetPort: 8080
