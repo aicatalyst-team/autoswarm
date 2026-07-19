@@ -2,15 +2,14 @@ FROM registry.access.redhat.com/ubi9/python-312
 
 WORKDIR /opt/app-root/src
 
-# Copy dependency definition
-COPY pyproject.toml ./
+# Copy all files needed for hatchling build (pyproject.toml needs README.md)
+COPY pyproject.toml README.md ./
 
-# Install only the online proxy dependencies (not benchmark extras)
-RUN pip install --no-cache-dir .
-
-# Copy application source
+# Copy the online package source (needed for pip install .)
 COPY online/ ./online/
-COPY README.md ./
+
+# Install the package (only online proxy dependencies, not benchmark extras)
+RUN pip install --no-cache-dir .
 
 # Create directories for conversations and skills
 RUN mkdir -p conversations && touch skills.yaml
