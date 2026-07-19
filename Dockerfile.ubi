@@ -1,5 +1,8 @@
 FROM registry.access.redhat.com/ubi9/python-312
 
+# Switch to root for build operations
+USER 0
+
 WORKDIR /opt/app-root/src
 
 # Copy all files needed for hatchling build (pyproject.toml needs README.md)
@@ -19,9 +22,9 @@ RUN chgrp -R 0 /opt/app-root && chmod -R g=u /opt/app-root
 
 EXPOSE 8080
 
+# Switch back to non-root
 USER 1001
 
 # Start the proxy server directly with uvicorn, bypassing CLI auto-detection
-# In production, set UPSTREAM_URL env var to point to your LLM endpoint
 ENV UPSTREAM_URL="http://localhost:11434"
 CMD ["python", "-c", "from online.server import create_app; import uvicorn; app = create_app(upstream='http://localhost:11434'); uvicorn.run(app, host='0.0.0.0', port=8080, log_level='info')"]
